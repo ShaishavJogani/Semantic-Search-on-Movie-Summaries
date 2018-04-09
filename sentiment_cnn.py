@@ -52,6 +52,9 @@ max_words = 5000
 # Word2Vec parameters (see train_word2vec)
 min_word_count = 1
 context = 10
+events_seq_length = 300
+
+
 # ---------------------- Parameters end -----------------------
 def transform_events_input(event_all_summaries, labels_y, labels_dict):
     new_events_all_summaries = np.array([event_all_summaries[label] for label in labels_y])
@@ -87,12 +90,12 @@ def evaluate_on_test(x_test, y_test):
     #evaluate = model.evaluate(testStr, np.array([[0,1], [0,1],[0,1], [1, 0]]))
     print("Evaluated against test dataset: " + evaluate)
     
-def predict_movie(testStr, model):
+def predict_movie(testStr, model, labels_dict):
     testStr = transform_testdata([testStr])
     pred = model.predict(testStr)
     
     for a in pred:
-        print(labels_dist[a.argmax()])
+        print(labels_dict[a.argmax()])
 
 def transform_testdata(test_strs):
     test_strs = [data_helpers.clean_str(sent) for sent in test_strs]
@@ -139,9 +142,12 @@ for sz in filter_sizes:
     conv_blocks.append(conv)
     
 conv_layers = Concatenate()(conv_blocks) if len(conv_blocks) > 1 else conv_blocks[0]
-conv_layers = Dropout(dropout_prob[1])(conv_layers)
+flated_conv_layers = Dropout(dropout_prob[1])(conv_layers)
 
-dense = Dense(hidden_dims, activation="relu")(conv_layers)
+event_input_layer = Input(shape=(events_seq_length,))
+merged = concatenate([flated_conv_layers, event_input_layer])
+
+dense = Dense(hidden_dims, activation="relu")(flated_conv_layers)
 model_output = Dense(num_labels, activation="softmax")(dense)
 
 model = Model(model_input, model_output)
@@ -151,12 +157,14 @@ model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accur
 print(model.summary())
 plot_model(model, to_file='event_summary_classification.png')
 
+#get event_train vectors
+event_x_train, event_x_test = get_event_data()
+
 # Initialize weights with word2vec
-if model_type == "CNN-non-static":
-    weights = np.array([v for v in embedding_weights.values()])
-    print("Initializing embedding layer with word2vec weights, shape", weights.shape)
-    embedding_layer = model.get_layer("embedding")
-    embedding_layer.set_weights([weights])
+weights = np.array([v for v in embedding_weights.values()])
+print("Initializing embedding layer with word2vec weights, shape", weights.shape)
+embedding_layer = model.get_layer("embedding")
+embedding_layer.set_weights([weights])
 
 # Train the model
 model.fit(x_train, y_train, batch_size=batch_size, epochs=num_epochs,
@@ -164,5 +172,5 @@ model.fit(x_train, y_train, batch_size=batch_size, epochs=num_epochs,
 
 
 
-predict_movie("Farhan photographer friend Rancho", model)
+predict_movie("photographer friend Farhan", model, labels_dict)
 

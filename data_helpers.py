@@ -107,6 +107,8 @@ def load_data():
     labels_temp = range(num_labels)
     labels_dict = zip(actual_labels, labels_temp)
     labels_dict = set(labels_dict)
+    labels_dict = {x[1]: x[0] for i, x in enumerate(labels_dict)}
+
     
     sentences_padded = pad_sentences(sentences) 
     vocabulary, vocabulary_inv = build_vocab(sentences_padded)
