@@ -57,7 +57,7 @@ def transform_events_input(event_all_summaries, labels_y, labels_dict):
     new_events_all_summaries = np.array([event_all_summaries[label] for label in labels_y])
     return new_events_all_summaries
 
-def load_data(data_source):
+def load_data():
     x, y, vocabulary, vocabulary_inv_list, num_labels, labels_dict = data_helpers.load_data()
     vocabulary_inv = {key: value for key, value in enumerate(vocabulary_inv_list)}
     labels_y = y.argmax(axis=1)
@@ -105,7 +105,7 @@ def transform_testdata(test_strs):
 
 # Data Preparation
 print("Load data...")
-x_train,  y_train, x_test,  y_test, vocabulary, vocabulary_inv, num_labels, labels_dict = load_data(data_source)
+x_train,  y_train, x_test,  y_test, vocabulary, vocabulary_inv, num_labels, labels_dict = load_data()
 
 if sequence_length != x_test.shape[1]:
     print("Adjusting sequence length for actual size")
