@@ -41,24 +41,33 @@ def extract_events(sentences):
 def load_event_data():
     events_all_summaries= []
     
+    summaries, labels, num_labels, actual_labels = load_event_data_and_labels()
+    
+    labels_temp = range(num_labels)
+    labels_dict = zip(actual_labels, labels_temp)
+    labels_dict = set(labels_dict)
+    labels_dict = {x[1]: x[0] for i, x in enumerate(labels_dict)}
+
+    
+    
     if(os.path.exists('./events')):
+        print("Reading from existing events")
         with open ('events', 'rb') as fp:
             events_all_summaries = pickle.load(fp)
     else:
-        summaries, labels, num_labels = load_event_data_and_labels()
         for i in range(len(summaries)):
             summary = summaries[i]
             sentences = summary.split('.')
-            events_in_summary = extract_events(sentences)
+            events_in_summary = filter(None, extract_events(sentences))
             events_all_summaries.append(list(set(events_in_summary)))
         with open('events', 'wb') as fp:
             pickle.dump(events_all_summaries, fp)
             
     events_all_summaries = pad_event_sentences(events_all_summaries)
     vocabulary, vocabulary_inv = build_event_vocab(events_all_summaries)
-    events_all_summaries = build_input_data(events_all_summaries, vocabulary)
+    events_onehot = build_input_data(events_all_summaries, vocabulary)
     
-    return [events_all_summaries, vocabulary, vocabulary_inv]
+    return [events_onehot, vocabulary, vocabulary_inv, labels_dict]
 
       
 
@@ -67,7 +76,14 @@ def build_input_data(events_all_summaries, vocabulary):
     Maps sentencs and labels to vectors based on a vocabulary.
     """
     x = np.array([[vocabulary[word] for word in event_summary] for event_summary in events_all_summaries])
-    return x
+    num_events = len(vocabulary)
+    events_onehot_list = np.zeros((len(events_all_summaries), num_events), int)
+    for i in range(len(events_onehot_list)):
+        one = events_onehot_list[i]
+        x1 = x[i]
+        one[x1] = 1
+    
+    return events_onehot_list
 
 
 def build_event_vocab(events_all_summaries):
@@ -105,7 +121,7 @@ def pad_event_sentences(events_all_summaries, padding_word="<PAD/>", testStringL
 def load_event_data_and_labels():
     
     df = pd.read_csv("data/trainMovie.csv")
-    selected = ['sentiment', ' review']
+    selected = ['sentiment', 'review']
     labels = sorted(list(set(df[selected[0]].tolist())))
     
     num_labels = len(labels)
@@ -117,7 +133,7 @@ def load_event_data_and_labels():
     y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
     
     
-    return [x_raw, y_raw, num_labels]
+    return [x_raw, y_raw, num_labels, labels]
 
 
 def clean_str(string):
