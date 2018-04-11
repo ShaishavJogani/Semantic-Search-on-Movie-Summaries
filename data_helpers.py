@@ -5,24 +5,14 @@ from collections import Counter
 import io
 import pandas as pd
 
-"""
-Original taken from https://github.com/dennybritz/cnn-text-classification-tf
-"""
-
 import sent2vec
-model = sent2vec.Sent2vecModel()
-model.load_model('wiki_bigrams.bin')
-
-
-def sent_embed(sent):
-    return [model.embed_sentence(clean_str(sent))]
-
+sent2vec_model = sent2vec.Sent2vecModel()
+sent2vec_model.load_model('wiki_bigrams.bin')
 
 
 def clean_str(string):
     """
     Tokenization/string cleaning for all datasets except for SST.
-    Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
     """
     string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
     string = re.sub(r"\'s", " \'s", string)
@@ -41,12 +31,7 @@ def clean_str(string):
 
 
 def load_data_and_labels():
-    """
-    Loads MR polarity data from files, splits the data into words and generates labels.
-    Returns split sentences and labels.
-    """
     # Load data from files
-
     df = pd.read_csv("data/train20.csv")
     selected = ['Category', 'Descript']
     df = df.dropna(axis=0, how='any', subset=selected)
@@ -61,9 +46,10 @@ def load_data_and_labels():
     x_raw= df[selected[1]].apply(lambda x: clean_str(x).split(' ')).tolist()
     y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
     
-    sent_raw= df[selected[1]].apply(lambda x: model.embed_sentence(clean_str(x))).tolist()
+    sent_raw = df[selected[1]].apply(lambda x: sent2vec_model.embed_sentence(clean_str(x))).tolist()
     sent_raw = np.array(sent_raw)
-    return [x_raw, y_raw, num_labels, labels,sent_raw]
+
+    return [x_raw, y_raw, num_labels, labels, sent_raw]
 
 
 def pad_sentences(sentences, padding_word="<PAD/>", testStringLength = None):
@@ -123,7 +109,7 @@ def load_data():
     sentences_padded = pad_sentences(sentences) 
     vocabulary, vocabulary_inv = build_vocab(sentences_padded)
     x, y = build_input_data(sentences_padded, labels, vocabulary)
-    return [x, y, vocabulary, vocabulary_inv, num_labels, labels_dict,sent_raw]
+    return [x, y, vocabulary, vocabulary_inv, num_labels, labels_dict, sent_raw]
 
 def transform_testdata(test_strs):
 

@@ -15,37 +15,38 @@ import pickle
 from keras.models import load_model
 from neuralcoref import Coref
 
+import sent2vec
+sent2vec_model = sent2vec.Sent2vecModel()
+sent2vec_model.load_model('wiki_bigrams.bin')
+
 def evaluate_on_test(x_test, y_test, model):
-    predictions = model.predict(x_test)
     evaluate = model.evaluate(x_test, y_test)
-    #evaluate = model.evaluate(testStr, np.array([[0,1], [0,1],[0,1], [1, 0]]))
     print("Evaluated against test dataset: " + evaluate)
 
 
-def predict_movie(testStr, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
-    coref = Coref()
-    
+def predict_movie(testStrs, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
 
-    clusters = coref.one_shot_coref(utterances= testStr)
-    testStr = coref.get_resolved_utterances()
-    testStr_vector = transform_testdata([testStr], vocabulary)
-    events_onehot = extract_events_onehot([testStr], event_voc)
-    
-    ners_onehot = extract_ners_onehot([testStr], ners_voc)
-    sent_vector = predict_helper.sent_embed(testStr)
+    testStrs = get_coreferenced_str(testStrs)
+    testStr_vector = transform_testdata(testStrs, vocabulary)
+    events_onehot = extract_events_onehot(testStrs, event_voc)
+    ners_onehot = extract_ners_onehot(testStrs, ners_voc)
+    sent2vec_vector = get_sent2vec_embeds(testStrs)
 
-    pred = model.predict([testStr_vector, events_onehot, ners_onehot,sent_vector])
+    preds = model.predict([testStr_vector, events_onehot, ners_onehot, sent2vec_vector])
     
-    sorted_pred = pred[0]
-    
-    if(not multiple):
-        print(labels_dict[sorted_pred.argmax()])
-        return
-    pred_dict = {i: x for i, x in enumerate(sorted_pred)}
-    sorted_pred_dict = sorted(pred_dict, key=pred_dict.get, reverse=True)
-    sliced_pred = sorted_pred_dict[:5]
-    for r in sliced_pred:
-        print(labels_dict[r] + str(pred_dict[r]))
+    for i in range(len(preds)):
+        print("Predictions for Query : {:d}".format(i+1))
+        pred = preds[i]
+        if(not multiple):
+            print("Predicting top movie")
+            print(labels_dict[pred.argmax()])
+            continue
+        print("Predicting top 5 movies: ")
+        pred_dict = {i: x for i, x in enumerate(pred)}
+        sorted_pred_dict = sorted(pred_dict, key=pred_dict.get, reverse=True)
+        sliced_pred = sorted_pred_dict[:5]
+        for r in sliced_pred:
+            print(labels_dict[r] + str(pred_dict[r]))
 
 def transform_testdata(test_strs, vocabulary):
     test_strs = [Lemmatizer(data_helpers.clean_str(sent)) for sent in test_strs]
@@ -85,6 +86,24 @@ def get_synonyms_for_word(word):
         for l in syn.lemmas():
             synonyms.append(l.name())
     return synonyms
+
+def get_sent2vec_embeds(testStrs):
+    sent2vec_embeds = []
+    for testStr in testStrs:
+        sent2vec_embeds.append(sent2vec_embed(testStr))
+    return sent2vec_embeds
+    
+def sent2vec_embed(sent):
+    return sent2vec_model.embed_sentence(auxilary_data_helper.clean_str(sent))
+
+def get_coreferenced_str(testStrs):
+    coreferenced_strs = []
+    for testStr in testStrs:
+        coref = Coref()
+        clusters = coref.one_shot_coref(utterances= testStr)
+        testStr = coref.get_resolved_utterances()[0]
+        coreferenced_strs.append(testStr)
+    return coreferenced_strs
 
 def load_model_and_params():
     with open ('model_params', 'rb') as fp:
