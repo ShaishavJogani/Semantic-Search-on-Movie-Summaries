@@ -149,12 +149,15 @@ events_dense = Dense(int((events_seq_length/2)), activation="relu", name="event_
 ners_input_layer = Input(shape=(ners_seq_length,), name="ner_input_layer")
 ners_dense = Dense(int((ners_seq_length/2)), activation="relu", name="ners_dense_layer")(ners_input_layer)
 
-merged = concatenate([flated_conv_layers, events_dense, ners_dense], name="conv_event_merge_layer")
+sent2vec_input_layer = Input(shape=(700,), name="sent2vec_input_layer")
+sent2vec_dense_layer = Dense(350, activation="relu", name="sent2vec_dense_layer")(sent2vec_input_layer)
+
+merged = concatenate([flated_conv_layers, events_dense, ners_dense, sent2vec_dense_layer], name="conv_event_ner_sent2vec_merge_layer")
 
 dense = Dense(hidden_dims, activation="relu", name="conv_event_merge_dense_layer")(merged)
 model_output = Dense(num_labels, activation="softmax", name="Output_layer")(dense)
 
-model = Model([model_input, events_input_layer, ners_input_layer], model_output)
+model = Model([model_input, events_input_layer, ners_input_layer, sent2vec_input_layer], model_output)
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 #Model Summary
