@@ -9,6 +9,15 @@ import pandas as pd
 Original taken from https://github.com/dennybritz/cnn-text-classification-tf
 """
 
+import sent2vec
+model = sent2vec.Sent2vecModel()
+model.load_model('wiki_bigrams.bin')
+
+
+def sent_embed(sent):
+    return [model.embed_sentence(clean_str(sent))]
+
+
 
 def clean_str(string):
     """
@@ -52,8 +61,9 @@ def load_data_and_labels():
     x_raw= df[selected[1]].apply(lambda x: clean_str(x).split(' ')).tolist()
     y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
     
-    
-    return [x_raw, y_raw, num_labels, labels]
+    sent_raw= df[selected[1]].apply(lambda x: model.embed_sentence(clean_str(x))).tolist()
+    sent_raw = np.array(sent_raw)
+    return [x_raw, y_raw, num_labels, labels,sent_raw]
 
 
 def pad_sentences(sentences, padding_word="<PAD/>", testStringLength = None):
@@ -102,7 +112,7 @@ def load_data():
     Returns input vectors, labels, vocabulary, and inverse vocabulary.
     """
     # Load and preprocess data
-    sentences, labels, num_labels, actual_labels = load_data_and_labels()
+    sentences, labels, num_labels, actual_labels, sent_raw = load_data_and_labels()
     
     labels_temp = range(num_labels)
     labels_dict = zip(actual_labels, labels_temp)
@@ -113,7 +123,7 @@ def load_data():
     sentences_padded = pad_sentences(sentences) 
     vocabulary, vocabulary_inv = build_vocab(sentences_padded)
     x, y = build_input_data(sentences_padded, labels, vocabulary)
-    return [x, y, vocabulary, vocabulary_inv, num_labels, labels_dict]
+    return [x, y, vocabulary, vocabulary_inv, num_labels, labels_dict,sent_raw]
 
 def transform_testdata(test_strs):
 

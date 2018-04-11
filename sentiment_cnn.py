@@ -42,7 +42,7 @@ hidden_dims = 50
 
 # Training parameters
 batch_size = 64
-num_epochs = 3
+num_epochs = 1
 
 # Prepossessing parameters
 sequence_length = 400
@@ -60,7 +60,7 @@ def transform_events_input(event_all_summaries, labels_y, labels_dict):
     return new_events_all_summaries
 
 def load_data():
-    x, y, vocabulary, vocabulary_inv_list, num_labels, labels_dict = data_helpers.load_data()
+    x, y, vocabulary, vocabulary_inv_list, num_labels, labels_dict, sent_raw = data_helpers.load_data()
     vocabulary_inv = {key: value for key, value in enumerate(vocabulary_inv_list)}
     labels_y = y.argmax(axis=1)
     
@@ -92,13 +92,16 @@ def load_data():
     ners_x_test = ners_x[train_len:]
     y_test = y[train_len:]
 
-    return x_train, event_x_train, ners_x_train, y_train, x_test, event_x_test,  ners_x_test, y_test, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv, num_labels, labels_dict
+    sent_train = sent_raw[:train_len]
+    sent_test = sent_raw[train_len:]
+
+    return x_train, event_x_train, ners_x_train, y_train, x_test, event_x_test,  ners_x_test, y_test, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv, num_labels, labels_dict, sent_train, sent_test
 
   
     
 # Data Preparation
 print("Load data...")
-x_train, event_x_train, ners_x_train, y_train, x_test, event_x_test,  ners_x_test, y_test, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv,  num_labels, labels_dict = load_data()
+x_train, event_x_train, ners_x_train, y_train, x_test, event_x_test,  ners_x_test, y_test, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv,  num_labels, labels_dict,  sent_train, sent_test = load_data()
 
 if sequence_length != x_test.shape[1]:
     print("Adjusting sequence length for actual size: {:d}".format(x_test.shape[1]))
@@ -149,17 +152,20 @@ events_dense = Dense(int((events_seq_length/2)), activation="relu", name="event_
 ners_input_layer = Input(shape=(ners_seq_length,), name="ner_input_layer")
 ners_dense = Dense(int((ners_seq_length/2)), activation="relu", name="ners_dense_layer")(ners_input_layer)
 
-merged = concatenate([flated_conv_layers, events_dense, ners_dense], name="conv_event_merge_layer")
+sent2vec_input_layer = Input(shape=(700,), name="sent2vec_input_layer")
+sent2vec_dense_layer = Dense(350, activation="relu", name="sent2vec_dense_layer")(sent2vec_input_layer)
+
+merged = concatenate([flated_conv_layers, events_dense, ners_dense, sent2vec_dense_layer], name="conv_event_ner_sent2vec_merge_layer")
 
 dense = Dense(hidden_dims, activation="relu", name="conv_event_merge_dense_layer")(merged)
 model_output = Dense(num_labels, activation="softmax", name="Output_layer")(dense)
 
-model = Model([model_input, events_input_layer, ners_input_layer], model_output)
+model = Model([model_input, events_input_layer, ners_input_layer, sent2vec_input_layer], model_output)
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 #Model Summary
 print(model.summary())
-plot_model(model, to_file='event_summary_classification.png')
+#plot_model(model, to_file='event_summary_classification.png')
 
 # Initialize weights with word2vec
 weights = np.array([v for v in embedding_weights.values()])
@@ -168,8 +174,8 @@ embedding_layer = model.get_layer("embedding_layer")
 embedding_layer.set_weights([weights])
 
 # Train the model
-model.fit([x_train, event_x_train, ners_x_train], y_train, batch_size=batch_size, epochs=num_epochs,
-          validation_data=([x_test, event_x_test, ners_x_test], y_test), verbose=2)
+model.fit([x_train, event_x_train, ners_x_train,sent_train], y_train, batch_size=batch_size, epochs=num_epochs,
+          validation_data=([x_test, event_x_test, ners_x_test, sent_test], y_test), verbose=2)
 
 
 model.save("model.h5")
@@ -185,6 +191,6 @@ model_params = {"sequence_length": sequence_length,
 with open('model_params', 'wb') as fp:
     pickle.dump(model_params, fp)
     
-model, model_params = predict_helper.load_model_and_params()
+#model, model_params = predict_helper.load_model_and_params()
 predict_helper.predict_movie("Hero is a lawyer or attorney in a small-town. Bids for a reelection and loses.", model, labels_dict, vocabulary, event_voc, ners_voc, multiple = True)
 

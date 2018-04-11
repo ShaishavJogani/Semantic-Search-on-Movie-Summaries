@@ -10,7 +10,7 @@ Created on Wed Apr  4 19:56:17 2018
 
 #jnius_config.set_options('-Xms128m', '-Xmx512m')
 import os
-os.environ['CLASSPATH'] = "/Users/siddartha/Documents/Siddartha/ASU_Courses/Natural Language Processing/K-parser/kparser/kparser.jar:/Users/siddartha/Documents/Siddartha/ASU_Courses/Natural Language Processing/K-parser/Extractor/Extractor.jar"
+os.environ['CLASSPATH'] = "/home/prateekvishnu/Downloads/MovieDB-Phase2/kparser/kparser.jar:/home/prateekvishnu/Downloads/MovieDB-Phase2/Extractor/Extractor.jar"
 
 from jnius import autoclass
 from tokenizeData import Lemmatizer

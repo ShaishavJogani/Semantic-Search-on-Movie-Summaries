@@ -24,13 +24,17 @@ def evaluate_on_test(x_test, y_test, model):
 
 def predict_movie(testStr, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
     coref = Coref()
+    
+
     clusters = coref.one_shot_coref(utterances= testStr)
     testStr = coref.get_resolved_utterances()
     testStr_vector = transform_testdata([testStr], vocabulary)
-    events_onehot = extract_events_onehot([testStr], event_voc)
+    #events_onehot = extract_events_onehot([testStr], event_voc)
+    events_onehot = extract_events_onehot(testStr, event_voc)
     ners_onehot = extract_ners_onehot([testStr], ners_voc)
+    sent_vector = predict_helper.sent_embed(testStr)
 
-    pred = model.predict([testStr_vector, events_onehot, ners_onehot])
+    pred = model.predict([testStr_vector, events_onehot, ners_onehot,sent_vector])
     
     sorted_pred = pred[0]
     
@@ -44,6 +48,8 @@ def predict_movie(testStr, model, labels_dict, vocabulary, event_voc, ners_voc, 
         print(labels_dict[r] + str(pred_dict[r]))
 
 def transform_testdata(test_strs, vocabulary):
+    #added
+    test_strs = test_strs[0]
     test_strs = [Lemmatizer(data_helpers.clean_str(sent)) for sent in test_strs]
     test_strs = [s.split(" ") for s in test_strs]
     
