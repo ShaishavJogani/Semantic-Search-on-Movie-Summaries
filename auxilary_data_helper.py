@@ -128,7 +128,7 @@ def build_input_data(events_all_summaries, vocabulary, synonyms = None, is_test 
                         single_summary.append(vocabulary['<PAD/>'])
             x.append(single_summary)
     else:
-        x = np.array([[vocabulary[word] for word in event_summary] for event_summary in events_all_summaries])
+        x = np.array([[vocabulary[word] if word in vocabulary else vocabulary['<PAD/>'] for word in event_summary] for event_summary in events_all_summaries])
    
     num_events = len(vocabulary)
     events_onehot_list = np.zeros((len(events_all_summaries), num_events), int)

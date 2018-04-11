@@ -13,6 +13,7 @@ from tokenizeData import Lemmatizer
 import itertools
 import pickle
 from keras.models import load_model
+from neuralcoref import Coref
 
 def evaluate_on_test(x_test, y_test, model):
     predictions = model.predict(x_test)
@@ -22,6 +23,9 @@ def evaluate_on_test(x_test, y_test, model):
 
 
 def predict_movie(testStr, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
+    coref = Coref()
+    clusters = coref.one_shot_coref(utterances= testStr)
+    testStr = coref.get_resolved_utterances()
     testStr_vector = transform_testdata([testStr], vocabulary)
     events_onehot = extract_events_onehot([testStr], event_voc)
     ners_onehot = extract_ners_onehot([testStr], ners_voc)
