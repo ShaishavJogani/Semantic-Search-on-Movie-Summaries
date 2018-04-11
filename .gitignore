@@ -1,3 +1,5 @@
 __pycache__
 .git
 .DS_Store
+kparser
+wiki_bigrams.bin
