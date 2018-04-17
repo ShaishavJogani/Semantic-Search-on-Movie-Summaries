@@ -17,7 +17,7 @@ from neuralcoref import Coref
 
 import sent2vec
 sent2vec_model = sent2vec.Sent2vecModel()
-sent2vec_model.load_model('wiki_bigrams.bin')
+sent2vec_model.load_model('torontobooks_unigrams.bin')
 
 def evaluate_on_test(x_test, y_test, model):
     evaluate = model.evaluate(x_test, y_test)
@@ -30,7 +30,7 @@ def predict_movie(testStrs, model, labels_dict, vocabulary, event_voc, ners_voc,
     testStr_vector = transform_testdata(testStrs, vocabulary)
     events_onehot = extract_events_onehot(testStrs, event_voc)
     ners_onehot = extract_ners_onehot(testStrs, ners_voc)
-    sent2vec_vector = get_sent2vec_embeds(testStrs)
+    sent2vec_vector = get_sent2vec_embeds(testStrs)[0].reshape(1, 700)
 
     preds = model.predict([testStr_vector, events_onehot, ners_onehot, sent2vec_vector])
     
