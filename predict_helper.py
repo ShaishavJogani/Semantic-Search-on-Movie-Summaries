@@ -17,7 +17,8 @@ from neuralcoref import Coref
 
 import sent2vec
 sent2vec_model = sent2vec.Sent2vecModel()
-sent2vec_model.load_model('torontobooks_unigrams.bin')
+sent2vec_model.load_model('wiki_bigrams.bin')
+coref = Coref()
 
 def evaluate_on_test(x_test, y_test, model):
     evaluate = model.evaluate(x_test, y_test)
@@ -25,28 +26,34 @@ def evaluate_on_test(x_test, y_test, model):
 
 
 def predict_movie(testStrs, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
-
+    #testStrs = ["Father of a man suffers from Alzheimer disease.A man loves his father very much.", "The movie occurs in early 1800.A man cuts his throat."]
     testStrs = get_coreferenced_str(testStrs)
     testStr_vector = transform_testdata(testStrs, vocabulary)
     events_onehot = extract_events_onehot(testStrs, event_voc)
     ners_onehot = extract_ners_onehot(testStrs, ners_voc)
-    sent2vec_vector = get_sent2vec_embeds(testStrs)[0].reshape(1, 700)
-
+    sent2vec_vector = get_sent2vec_embeds(testStrs)
+    
     preds = model.predict([testStr_vector, events_onehot, ners_onehot, sent2vec_vector])
     
+    test_predictions = []
+    
     for i in range(len(preds)):
-        print("Predictions for Query : {:d}".format(i+1))
+        print("\n Predictions for Query : {:d}".format(i+1))
         pred = preds[i]
+        test_predictions.append(labels_dict[pred.argmax()])
         if(not multiple):
             print("Predicting top movie")
             print(labels_dict[pred.argmax()])
             continue
-        print("Predicting top 5 movies: ")
+        print("Predicting top 5 movies: \n")
         pred_dict = {i: x for i, x in enumerate(pred)}
         sorted_pred_dict = sorted(pred_dict, key=pred_dict.get, reverse=True)
         sliced_pred = sorted_pred_dict[:5]
         for r in sliced_pred:
             print(labels_dict[r] + str(pred_dict[r]))
+            
+    print("\n")
+    return test_predictions
 
 def transform_testdata(test_strs, vocabulary):
     test_strs = [Lemmatizer(data_helpers.clean_str(sent)) for sent in test_strs]
@@ -91,7 +98,7 @@ def get_sent2vec_embeds(testStrs):
     sent2vec_embeds = []
     for testStr in testStrs:
         sent2vec_embeds.append(sent2vec_embed(testStr))
-    return sent2vec_embeds
+    return np.array(sent2vec_embeds)
     
 def sent2vec_embed(sent):
     return sent2vec_model.embed_sentence(auxilary_data_helper.clean_str(sent))
@@ -99,7 +106,6 @@ def sent2vec_embed(sent):
 def get_coreferenced_str(testStrs):
     coreferenced_strs = []
     for testStr in testStrs:
-        coref = Coref()
         clusters = coref.one_shot_coref(utterances= testStr)
         testStr = coref.get_resolved_utterances()[0]
         coreferenced_strs.append(testStr)

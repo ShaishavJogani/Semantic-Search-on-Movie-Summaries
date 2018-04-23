@@ -2,7 +2,6 @@ import numpy as np
 import re
 import itertools
 from collections import Counter
-import io
 import pandas as pd
 
 import sent2vec

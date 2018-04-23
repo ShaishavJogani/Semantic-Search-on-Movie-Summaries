@@ -8,7 +8,6 @@ from keras.layers import Dense, Dropout, Flatten, Input, MaxPooling1D, Convoluti
 from keras.layers.merge import Concatenate
 from keras.layers.merge import concatenate
 from keras.utils import plot_model
-import predict_helper
 import pickle
 
 np.random.seed(0)
@@ -185,7 +184,4 @@ model_params = {"sequence_length": sequence_length,
 with open('model_params', 'wb') as fp:
     pickle.dump(model_params, fp)
     
-#predict
-model, model_params = predict_helper.load_model_and_params()
-predict_helper.predict_movie(["Hero is a lawyer or attorney in a small-town. Bids for a reelection and loses."], model, model_params['labels_dict'], model_params['vocabulary'], model_params['event_voc'], model_params['ners_voc'], multiple = True)
 
