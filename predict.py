@@ -9,7 +9,7 @@ import predict_helper
 import pandas as pd
 
 
-queries_df = pd.read_csv('./data/query.txt', sep="*", delimiter="*", header = None)
+queries_df = pd.read_csv('./data/test.txt', sep="*", delimiter="*", header = None)
 test_queries = queries_df[1].tolist()
 test_labels = queries_df[0].tolist()
 

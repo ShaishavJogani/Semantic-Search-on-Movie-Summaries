@@ -144,14 +144,14 @@ sent2vec_dense_layer = Dense(350, activation="relu", name="sent2vec_dense_layer"
 
 
 #merge all input layers
-merged = concatenate([flated_conv_layers, events_dense, ners_dense, sent2vec_dense_layer], name="conv_event_ner_sent2vec_merge_layer")
+merged = concatenate([flated_conv_layers, events_dense, ners_dense], name="conv_event_ner_sent2vec_merge_layer")
 
 #dense layer
 dense = Dense(hidden_dims, activation="relu", name="conv_event_merge_dense_layer")(merged)
 model_output = Dense(num_labels, activation="softmax", name="Output_layer")(dense)
 
 #create model
-model = Model([model_input, events_input_layer, ners_input_layer, sent2vec_input_layer], model_output)
+model = Model([model_input, events_input_layer, ners_input_layer], model_output)
 model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
 
 #Model Summary
@@ -165,8 +165,8 @@ embedding_layer = model.get_layer("embedding_layer")
 embedding_layer.set_weights([weights])
 
 # Train the model
-model.fit([x_train, event_x_train, ners_x_train, sent_x_train], y_train, batch_size=batch_size, epochs=num_epochs,
-          validation_data=([x_test, event_x_test, ners_x_test, sent_x_test], y_test), verbose=2)
+model.fit([x_train, event_x_train, ners_x_train], y_train, batch_size=batch_size, epochs=num_epochs,
+          validation_data=([x_test, event_x_test, ners_x_test], y_test), verbose=2)
 
 
 model.save("model.h5")
