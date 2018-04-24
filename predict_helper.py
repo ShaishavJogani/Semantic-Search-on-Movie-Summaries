@@ -26,14 +26,14 @@ def evaluate_on_test(x_test, y_test, model):
 
 
 def predict_movie(testStrs, model, labels_dict, vocabulary, event_voc, ners_voc, multiple = False):
-    #testStrs = ["Father of a man suffers from Alzheimer disease.A man loves his father very much.", "The movie occurs in early 1800.A man cuts his throat."]
+    #testStrs = ["A young girl rises to fame in Broadway while many other theatre figures are jealous and disgusted. She starts as a general assistant to another bright star of Broadway and slowly she becomes the new star in the town. Another highschool girl offers to help and becomes a maid to Eve."]
     testStrs = get_coreferenced_str(testStrs)
     testStr_vector = transform_testdata(testStrs, vocabulary)
-    events_onehot = extract_events_onehot(testStrs, event_voc)
-    ners_onehot = extract_ners_onehot(testStrs, ners_voc)
+    #events_onehot = extract_events_onehot(testStrs, event_voc)
+    #ners_onehot = extract_ners_onehot(testStrs, ners_voc)
     sent2vec_vector = get_sent2vec_embeds(testStrs)
     
-    preds = model.predict([testStr_vector, events_onehot, ners_onehot, sent2vec_vector])
+    preds = model.predict([testStr_vector, sent2vec_vector])
     
     test_predictions = []
     

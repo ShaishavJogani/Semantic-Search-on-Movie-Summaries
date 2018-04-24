@@ -82,7 +82,38 @@ def load_event_data():
     
     return [events_onehot, vocabulary, vocabulary_inv, labels_dict]
 
+def load_event_data2():
+    events_all_summaries= []
+    
+    summaries, labels, num_labels, actual_labels = load_event_data_and_labels2()
+    
+    labels_temp = range(num_labels)
+    labels_dict = zip(actual_labels, labels_temp)
+    labels_dict = set(labels_dict)
+    labels_dict = {x[1]: x[0] for i, x in enumerate(labels_dict)}
+    
+    if(os.path.exists('./events2')):
+        print("Reading from existing events")
+        with open ('events2', 'rb') as fp:
+            events_all_summaries = pickle.load(fp)
+    else:
+        for i in range(len(summaries)):
+            print("events for :"+str(i))
+            summary = summaries[i]
+            sentences = summary.split('.')
+            events_in_summary = filter(None, extract_events(sentences))
+            events_all_summaries.append(list(set(events_in_summary)))
+        with open('events2', 'wb') as fp:
+            pickle.dump(events_all_summaries, fp)
+            
+    events_all_summaries = pad_sentences(events_all_summaries)
+    vocabulary, vocabulary_inv = build_vocab(events_all_summaries, vocab_type = 'event')
+    events_onehot = build_input_data(events_all_summaries, vocabulary, vocab_type ='event')
+    
+    return [events_onehot, vocabulary, vocabulary_inv, labels_dict]
+
  
+    
 def load_ners_data():
     ners_all_summaries = [] 
     summaries, labels, num_labels, actual_labels = load_event_data_and_labels()
@@ -189,6 +220,23 @@ def load_event_data_and_labels():
     
     df = pd.read_csv("data/trainMovie.csv")
     selected = ['sentiment', 'review']
+    labels = sorted(list(set(df[selected[0]].tolist())))
+    
+    num_labels = len(labels)
+    one_hot = np.zeros((num_labels, num_labels), int)
+    np.fill_diagonal(one_hot, 1)
+    label_dict = dict(zip(labels, one_hot))
+    
+    x_raw = df[selected[1]].apply(lambda x: x).tolist()
+    y_raw = df[selected[0]].apply(lambda y: label_dict[y]).tolist()
+    
+    
+    return [x_raw, y_raw, num_labels, labels]
+
+def load_event_data_and_labels2():
+    
+    df = pd.read_csv("data/train10.csv")
+    selected = ['Category', 'Descript']
     labels = sorted(list(set(df[selected[0]].tolist())))
     
     num_labels = len(labels)
