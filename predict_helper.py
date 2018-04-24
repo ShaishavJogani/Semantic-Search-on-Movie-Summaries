@@ -60,7 +60,7 @@ def transform_testdata(test_strs, vocabulary):
     test_strs = [s.split(" ") for s in test_strs]
     
     test_strs_padded = data_helpers.pad_sentences(test_strs, testStringLength = 90)
-    x = np.array([[vocabulary[word] if word in vocabulary else vocabulary["<PAD/>"] for word in sentence] for sentence in test_strs_padded])
+    x = np.array([[vocabulary[word] if word in vocabulary else vocabulary["UNKNOWN_WORD"] for word in sentence] for sentence in test_strs_padded])
     return x
 
  
@@ -73,7 +73,7 @@ def extract_events_onehot(testStrs, event_voc):
         
     events_all_test_str = auxilary_data_helper.pad_sentences(events_all_test_str, testStringLength=1379)
     synonyms = get_synonyms(events_all_test_str)
-    return auxilary_data_helper.build_input_data(events_all_test_str, event_voc, synonyms=synonyms, is_test = True)
+    return auxilary_data_helper.build_input_data(events_all_test_str, event_voc, synonyms=synonyms, is_test = True, vocab_type='event')
     
 def extract_ners_onehot(testStrs, ners_voc):
      ners_all_test_str = []
@@ -81,7 +81,7 @@ def extract_ners_onehot(testStrs, ners_voc):
          ners_in_str = auxilary_data_helper.extract_ners(testStr)
          ners_all_test_str.append(ners_in_str)
      ners_all_test_str = auxilary_data_helper.pad_sentences(ners_all_test_str, testStringLength=1379)
-     return auxilary_data_helper.build_input_data(ners_all_test_str, ners_voc)
+     return auxilary_data_helper.build_input_data(ners_all_test_str, ners_voc, vocab_type='ner')
 
 def get_synonyms(events_all_summaries):
     synonyms ={event: get_synonyms_for_word(event) for event in list(itertools.chain.from_iterable(events_all_summaries))}

@@ -75,6 +75,7 @@ def build_vocab(sentences):
     """
     # Build vocabulary
     word_counts = Counter(itertools.chain(*sentences))
+    word_counts['UNKNOWN_WORD'] = 1
     # Mapping from index to word
     vocabulary_inv = [x[0] for x in word_counts.most_common()]
     # Mapping from word to index

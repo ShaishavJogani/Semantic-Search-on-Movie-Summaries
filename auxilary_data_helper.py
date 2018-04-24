@@ -77,8 +77,8 @@ def load_event_data():
             pickle.dump(events_all_summaries, fp)
             
     events_all_summaries = pad_sentences(events_all_summaries)
-    vocabulary, vocabulary_inv = build_vocab(events_all_summaries)
-    events_onehot = build_input_data(events_all_summaries, vocabulary)
+    vocabulary, vocabulary_inv = build_vocab(events_all_summaries, vocab_type = 'event')
+    events_onehot = build_input_data(events_all_summaries, vocabulary, vocab_type ='event')
     
     return [events_onehot, vocabulary, vocabulary_inv, labels_dict]
 
@@ -100,13 +100,13 @@ def load_ners_data():
             pickle.dump(ners_all_summaries, fp)
             
     ners_all_summaries = pad_sentences(ners_all_summaries)
-    vocabulary, vocabulary_inv = build_vocab(ners_all_summaries)
-    ners_onehot = build_input_data(ners_all_summaries, vocabulary)
+    vocabulary, vocabulary_inv = build_vocab(ners_all_summaries, vocab_type = 'ner')
+    ners_onehot = build_input_data(ners_all_summaries, vocabulary, vocab_type='ner')
     
     return [ners_onehot, vocabulary, vocabulary_inv]
 
 
-def build_input_data(events_all_summaries, vocabulary, synonyms = None, is_test = False):
+def build_input_data(events_all_summaries, vocabulary, synonyms = None, is_test = False, vocab_type = None):
     """
     Maps sentencs and labels to vectors based on a vocabulary.
     """
@@ -126,10 +126,10 @@ def build_input_data(events_all_summaries, vocabulary, synonyms = None, is_test 
                             added = True
                             break
                     if not added:
-                        single_summary.append(vocabulary['<PAD/>'])
+                        single_summary.append(getUnknownWordForVocab(vocabulary, vocab_type))
             x.append(single_summary)
     else:
-        x = np.array([[vocabulary[word] if word in vocabulary else vocabulary['<PAD/>'] for word in event_summary] for event_summary in events_all_summaries])
+        x = np.array([[vocabulary[word] if word in vocabulary else getUnknownWordForVocab(vocabulary, vocab_type) for word in event_summary] for event_summary in events_all_summaries])
    
     num_events = len(vocabulary)
     events_onehot_list = np.zeros((len(events_all_summaries), num_events), int)
@@ -140,14 +140,26 @@ def build_input_data(events_all_summaries, vocabulary, synonyms = None, is_test 
     
     return events_onehot_list
 
-
-def build_vocab(events_all_summaries):
+def getUnknownWordForVocab(vocabulary, vocab_type):
+    if vocab_type == 'event':
+        return vocabulary['UNKNOWN_EVENT']
+    elif vocab_type == 'ner':
+        return vocabulary['UNKNOWN_NER']
+    else:
+        return vocabulary['<PAD/>']
+    
+def build_vocab(events_all_summaries, vocab_type = None):
     """
     Builds a vocabulary mapping from word to index based on the sentences.
     Returns vocabulary mapping and inverse vocabulary mapping.
     """
     # Build vocabulary
     word_counts = Counter(itertools.chain(*events_all_summaries))
+    if vocab_type == 'event':
+        word_counts['UNKNOWN_EVENT'] = 1
+    elif vocab_type == 'ner':
+        word_counts['UNKNOWN_NER'] = 1
+        
     # Mapping from index to word
     vocabulary_inv = [x[0] for x in word_counts.most_common()]
     # Mapping from word to index
