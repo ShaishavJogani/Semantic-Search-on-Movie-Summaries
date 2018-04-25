@@ -29,11 +29,11 @@ def predict_movie(testStrs, model, labels_dict, vocabulary, event_voc, ners_voc,
     #testStrs = ["A young girl rises to fame in Broadway while many other theatre figures are jealous and disgusted. She starts as a general assistant to another bright star of Broadway and slowly she becomes the new star in the town. Another highschool girl offers to help and becomes a maid to Eve."]
     testStrs = get_coreferenced_str(testStrs)
     testStr_vector = transform_testdata(testStrs, vocabulary)
-    #events_onehot = extract_events_onehot(testStrs, event_voc)
-    #ners_onehot = extract_ners_onehot(testStrs, ners_voc)
+    events_onehot = extract_events_onehot(testStrs, event_voc)
+    ners_onehot = extract_ners_onehot(testStrs, ners_voc)
     sent2vec_vector = get_sent2vec_embeds(testStrs)
     
-    preds = model.predict([testStr_vector, sent2vec_vector])
+    preds = model.predict(testStr_vector)
     
     test_predictions = []
     
@@ -112,8 +112,8 @@ def get_coreferenced_str(testStrs):
     return coreferenced_strs
 
 def load_model_and_params():
-    with open ('model_params', 'rb') as fp:
+    with open ('./model_parameters/model_params_conv_1', 'rb') as fp:
         model_params = pickle.load(fp)
-    model = load_model('model.h5')
+    model = load_model('./final_models/model_conv_1.h5')
     return model, model_params
     

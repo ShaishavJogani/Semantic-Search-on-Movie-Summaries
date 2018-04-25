@@ -4,7 +4,7 @@ import data_helpers
 from w2v import train_word2vec
 import auxilary_data_helper
 from keras.models import Model
-from keras.layers import Dense, Dropout, Flatten, Input, MaxPooling1D, Convolution1D, Embedding
+from keras.layers import Dense, Dropout, Flatten, Input, MaxPooling1D, Convolution1D, Embedding, Reshape
 from keras.layers.merge import Concatenate
 from keras.layers.merge import concatenate
 from keras.utils import plot_model
@@ -23,7 +23,7 @@ hidden_dims = 50
 # Training parameters
 batch_size = 64
 num_epochs = 2
-kfold_splits = 10
+kfold_splits = 2
 # Prepossessing parameters
 sequence_length = 400
 max_words = 5000
@@ -55,33 +55,7 @@ def load_data():
     ners_voc_inv = {key: value for key, value in enumerate(ners_voc_inv_list)}
     ners_x = transform_events_input(ners_onehot, labels_y, labels_dict)
     
-    # Shuffle data
-    '''shuffle_indices = np.random.permutation(np.arange(len(y)))
-    
-    x = x[shuffle_indices]
-    event_x = event_x[shuffle_indices]
-    ners_x = ners_x[shuffle_indices]
-    sent2vec_raw = sent2vec_raw[shuffle_indices]
-    
-    y = y[shuffle_indices]
-    train_len = int(len(x) * 0.9)
-    
-    #train data
-    x_train = x[:train_len]
-    event_x_train = event_x[:train_len]
-    ners_x_train = ners_x[:train_len]
-    sent_x_train = sent2vec_raw[:train_len]
-    y_train = y[:train_len]
-    
-    #validation data
-    x_test = x[train_len:]
-    event_x_test = event_x[train_len:]
-    ners_x_test = ners_x[train_len:]
-    sent_x_test = sent2vec_raw[train_len:]
-    y_test = y[train_len:]'''
-
     return x, event_x, ners_x, sent2vec_raw, y, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv, num_labels, labels_dict
-    #return x_train, event_x_train, ners_x_train, sent_x_train, y_train, x_test, event_x_test,  ners_x_test, sent_x_test, y_test, vocabulary, vocabulary_inv, event_voc, event_voc_inv, ners_voc, ners_voc_inv, num_labels, labels_dict
 
 def create_model(x_train, event_x_train, ners_x_train, sent_x_train, y_train, x_test, event_x_test,  ners_x_test, sent_x_test, y_test, vocabulary, vocabulary_inv):
         
@@ -144,14 +118,24 @@ def create_model(x_train, event_x_train, ners_x_train, sent_x_train, y_train, x_
     
     
     #merge all input layers
-    #merged = concatenate([flated_conv_layers], name="conv_event_ner_sent2vec_merge_layer")
+    merged = concatenate([flated_conv_layers, events_dense, ners_dense, sent2vec_dense_layer], name="conv_event_ner_sent2vec_merge_layer")
     
+    #convolution layer for the contcatenated features
+    merged_reshaped = Reshape((6, 357))(merged)
+    merged_conv = Convolution1D(filters= 10,
+                             kernel_size= 3,
+                             padding="valid",
+                             activation="relu",
+                             strides=1, name="merged_conv_layer_"+ str(3))(merged_reshaped)
+    merged_conv = MaxPooling1D(pool_size=2, name="merged_conv_maxpool_layer_"+ str(3))(merged_conv)
+    merged_conv = Flatten(name="merged_conv_flatten_layer_"+ str(3))(merged_conv)
+
     #dense layer
-    dense = Dense(hidden_dims, activation="relu", name="conv_event_merge_dense_layer")(flated_conv_layers)
+    dense = Dense(hidden_dims, activation="relu", name="conv_event_merge_dense_layer")(merged_conv)
     model_output = Dense(num_labels, activation="softmax", name="Output_layer")(dense)
     
     #create model
-    model = Model([model_input], model_output)
+    model = Model([model_input, events_input_layer, ners_input_layer, sent2vec_input_layer], model_output)
     model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
     
     return model, embedding_weights
@@ -166,8 +150,8 @@ def train_evaluate_model(model, embedding_weights, x_train, event_x_train, ners_
     embedding_layer.set_weights([weights])
     
     # Train the model
-    history = model.fit(x_train, y_train, batch_size=batch_size, epochs=num_epochs,
-              validation_data=(x_test, y_test), verbose=2)
+    history = model.fit([x_train, event_x_train, ners_x_train, sent_x_train], y_train, batch_size=batch_size, epochs=num_epochs,
+              validation_data=([x_test, event_x_test,  ners_x_test, sent_x_test], y_test), verbose=2)
     return history
 
 
@@ -203,6 +187,8 @@ if __name__ == "__main__":
     
     model.save("model.h5")
     
+    model.save("./final_models/model_conv_all.h5")
+    
     #save model params for predict
     model_params = {"sequence_length": sequence_length, 
                     "events_seq_length": events_seq_length, 
@@ -213,7 +199,7 @@ if __name__ == "__main__":
                     "ners_voc": ners_voc,
                     "labels_dict": labels_dict}
     
-    with open('model_params', 'wb') as fp:
+    with open('./model_parameters/model_params_conv_all', 'wb') as fp:
         pickle.dump(model_params, fp)
     
 

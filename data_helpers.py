@@ -6,7 +6,7 @@ import pandas as pd
 
 import sent2vec
 sent2vec_model = sent2vec.Sent2vecModel()
-sent2vec_model.load_model('torontobooks_unigrams.bin')
+sent2vec_model.load_model('wiki_bigrams.bin')
 
 
 def clean_str(string):

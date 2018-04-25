@@ -7,9 +7,9 @@ from tokenizeData import Lemmatizer
 
 def create_train_data_csv():
     files = os.listdir("data/CoreferencedPlots")
-    w = open('data/train10.csv', 'w+')
+    w = open('data/train20.csv', 'w+')
     w.write('Category,Descript\n')
-    for file in files[:10]:
+    for file in files[:20]:
         with codecs.open('data/CoreferencedPlots/'+file, 'r', encoding='utf-8', errors='ignore') as f:
             text = f.read()
             text = Lemmatizer(text)
@@ -28,9 +28,9 @@ def create_train_data_csv():
 
 def create_movie_summary_csv():    
     files = os.listdir("data/CoreferencedPlots")
-    w = open('data/train10Movie.csv', 'w+')
+    w = open('data/trainMovie.csv', 'w+')
     w.write('sentiment,review\n')
-    for file in files[:10]:
+    for file in files[:20]:
         with codecs.open('data/CoreferencedPlots/'+file, 'r', encoding='utf-8', errors='ignore') as f:
             text = f.read()
             text = text.replace(",", "")
